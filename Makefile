@@ -4,25 +4,25 @@ SDIR = src
 HDIR = headers
 ODIR = obj
 
-_OBJ = main.o
+_OBJ = main.o renderer.o input.o collision.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 CFLAGS = -I$(HDIR) -Wall -Wextra -pedantic
-LIBS = -lm -lSDL2 -lGL -lGLU
+LIBS = -lm -lGL -lGLU -lglut
 
 all: peggle
 
 debug: CFLAGS += -g
 debug: all
 
-$(ODIR)/%.o: $(SDIR)/%.c
+$(ODIR)/%.o: %.cpp
 	@mkdir -p $(@D)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-pegglee: $(OBJ)
+peggle: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 .PHONY: clean
 clean:
-	-rm -r $(ODIR) wave
+	-rm -r $(ODIR) peggle
 

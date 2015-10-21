@@ -1,102 +1,121 @@
-/*
- * This program shows how to do collision detection between
- * particles in two dimensions.
- *
- * Uses hard-sphere assumptions for collision dynamics.
- *
- * Both brute-force and uniform grid approaches implemented.
- *
- * Numerical integration of equations of motion.
- *
- * $Id: particles_2D.C,v 1.13 2012/09/24 00:57:22 gl Exp gl $
- */
-#include <math.h>
-#include <sys/time.h>
-#include <stdio.h>
-#include <string.h>
-#include <GL/glut.h>
-#include <GL/glu.h>
-#include <GL/gl.h>
-#include <limits.h>
-#include <stdlib.h>
+#include "global.h"
 
-/* Debugging controls .*/
-enum debugFlags {
-	debug_time,
-	debug_wall,
-	debug_initialise_particle,
-	debug_particle,
-	debug_particle_collision,
-	debug_collideParticlesBruteForce,
-	debug_collideParticlesUniformGrid,
-	debug_collisionReactionParticles2DbasisChange,
-	debug_collisionReactionParticles2DprojNormal,
-	debug_framerate,
-	debug_range_check,
-	debug_sum_kinetic_energy,
-	debug_sum_momentum,
-	numDebugFlags
-};
-int debug[numDebugFlags] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1 };
+#define GRAVITY 15
 
-/* Use our type so we can change precision easily. */
-typedef double Real;
+bool checkCollision (struct Particle p1, struct Particle p2)
+{
+	//circle collision
+	Real d0 = p1.position[0] - p2.position[0];
+	Real d1 = p1.position[1] - p2.position[1];
+	Real distance2 = d0 * d0 + d1 * d1;
+	Real radius = p1.radius + p2.radius;
 
-/* Small number to handle numerical imprecision. */
-const Real epsilon = 1.0e-6;
 
-/* Particles (particles). */
-struct Particle {
-	Real position[2];
-	Real velocity[2];
-	Real radius;
-	Real mass;
-	Real elasticity;
-	GLUquadric *quadric;  /* For rendering. */
-	int slices, loops;    /* For rendering. */
-};
+	//printf ("%f\n", distance2 - radius * radius);
+	if (distance2 <= radius * radius)
+		return true;
 
-/* Control 1D or 2D */
-const int dimension = 2;
+	return false;
+}
 
-/* Control random or explicit initial positions */
-enum {
-	randomly,
-	explicitly
-} const initialiseParticles = randomly;
+void collisionReaction(struct Particle &p1, struct Particle &p2)
+{
+	Real n[2], n_mag;
+	Real projnv1, projnv2;
+	Real m1, m2, v1i, v2i, v1f, v2f;
 
-/* Control collision reaction calculation */
-enum ReactionCalculation {
-	basisChange,
-	projNormal
-} reacCalc = basisChange;
+	/* Normal vector n between centres. */
+	n[0] = p2.position[0] - p1.position[0];
+	n[1] = p2.position[1] - p1.position[1];
 
-const int numParticles = 100;
-Particle particle[numParticles];
+	/* Normalise n. */
+	n_mag = sqrt(n[0] * n[0] + n[1] * n[1]);
+	n[0] /= n_mag;
+	n[1] /= n_mag;
 
-/* Arena. */
-struct Arena {
-	Real min[2], max[2];
-	Real momentum[2];
-} arena;
+	/* Vector projection/component/resolute of velocity in n direction. */
+	projnv1 = n[0] * p1.velocity[0] + n[1] * p1.velocity[1];
+	projnv2 = n[0] * p2.velocity[0] + n[1] * p2.velocity[1];
 
-/* Rendering info. */
-enum renderMode { wire, solid };
-static renderMode renMode = wire;
-static Real elapsedTime = 0.0, startTime = 0.0;
-static const int milli = 1000;
-static bool go = false;
+	/* Use 1D equations to calculate final velocities in n direction. */
+	v1i = projnv1;
+	v2i = projnv2;
+	m1 = p1.mass;
+	m2 = p2.mass;
 
-/* Collision detection method. */
-enum CollisionDetectionMethod {
-	bruteForce,
-	uniformGrid
-};
+	if(m1 == INF)
+	{
+		v2f = -v2i * p2.elasticity;
+		v1f = v1i;
+	}
+	else if (m2 == INF)
+	{
+		v1f = -v1i * p1.elasticity;
+		v2f = v2i;
+	}
+	else
+	{
+		v1f = (m1 - m2) / (m1 + m2) * v1i + 2.0  * m2 / (m1 + m2) * v2i;
+		v2f = 2.0  * m1 / (m1 + m2) * v1i + (m2 - m1) / (m1 + m2) * v2i;
+	}
 
-CollisionDetectionMethod CDmethod = bruteForce;
+	/* Vector addition to solve for final velocity. */
+	p1.velocity[0] += (v1f - v1i) * n[0];
+	p1.velocity[1] += (v1f - v1i) * n[1];
+	p2.velocity[0] += (v2f - v2i) * n[0];
+	p2.velocity[1] += (v2f - v2i) * n[1];
+}
 
-Real random_uniform() {
-	return rand()/(float)RAND_MAX;
+void moveBall(Real t)
+{
+	if (t < 0)
+	{
+		ball.velocity[1] += -GRAVITY * t;
+		ball.position[0] += ball.velocity[0] * t;
+		ball.position[1] += ball.velocity[1] * t;
+	}
+	else
+	{
+		ball.position[0] += ball.velocity[0] * t;
+		ball.position[1] += ball.velocity[1] * t;
+		ball.velocity[1] += -GRAVITY * t;
+	}
+}
+
+void setHitColor(struct Particle &p)
+{
+	p.color[0] = 1;
+	p.color[1] = p.color[2] = 0;
+}
+
+void updateBall(void)
+{
+	moveBall(diffTime);
+	for (int i = 0; i < numPegs; i++) {
+		//printf("peg %d: ", i);
+		if (checkCollision(ball, pegs[i]))
+		{
+			setHitColor(pegs[i]);
+			moveBall(-diffTime);
+			collisionReaction(ball, pegs[i]);
+			moveBall(diffTime);
+		}
+	}
+}
+
+void update(void)
+{
+	static Real oldTime = 0;
+	if (!go)
+		return;
+
+	elapsedTime = glutGet(GLUT_ELAPSED_TIME) / (Real)milli - startTime;
+	diffTime = elapsedTime - oldTime;
+	oldTime = elapsedTime;
+	updateBall();
+	//updatePegs();
+
+	glutPostRedisplay();
 }
 
 void panic(const char *m) {
@@ -104,186 +123,7 @@ void panic(const char *m) {
 	exit(1);
 }
 
-void initialiseArena()
-{
-	const Real halfLength = 7.5;
-
-	arena.min[0] = -halfLength;
-	arena.min[1] = -halfLength;
-	arena.max[0] = halfLength;
-	arena.max[1] = halfLength;
-
-	arena.momentum[0] = 0.0;
-	arena.momentum[1] = 0.0;
-}
-
-
-void initialiseParticlesExplicitly()
-{
-	GLUquadric *quadric = gluNewQuadric();
-
-	for (int i = 0; i < 2; i++) {
-		particle[i].velocity[0] = 1.0;
-		particle[i].velocity[1] = 0.0;
-		particle[i].radius = 5.0;
-		particle[i].mass = 1.0;
-		particle[i].elasticity = 1.0;
-		particle[i].quadric = quadric;
-		particle[i].slices = 10;
-		particle[i].loops = 3;
-	}
 #if 0
-	particle[0].position[0] = 0.5 * arena.max[0];
-	particle[1].position[0] = -0.5 * arena.max[0];
-	particle[0].velocity[0] = -1.0;
-	particle[1].velocity[0] = 1.0;
-	particle[0].mass = 2.0;
-	particle[0].radius *= sqrt(2.0);
-#endif
-	particle[0].position[0] = 0.5 * arena.max[0];
-	particle[0].position[1] = -0.5 * arena.max[0];
-	particle[1].position[0] = -0.5 * arena.max[0];
-	particle[1].position[1] = -0.5 * arena.max[0];
-	particle[0].velocity[0] = -1.0;
-	particle[0].velocity[1] = 1.0;
-	particle[1].velocity[0] = 1.0;
-	particle[1].velocity[1] = 1.0;
-#if 0
-	particle[0].mass = 2.0;
-	particle[0].radius *= sqrt(2.0);
-#endif
-}
-
-void initialiseParticlesRandomly()
-{
-	GLUquadric *quadric = gluNewQuadric();
-	const Real maxVelocity = 1.0;
-	Real n[2], n_mag_sq, sum_radii, sum_radii_sq;
-	bool collision, done;
-	int i, j;
-
-	for (i = 0; i < numParticles; i++) {
-		particle[i].velocity[0] = (random_uniform() - 0.5) * maxVelocity;
-		particle[i].velocity[1] = (random_uniform() - 0.5) * maxVelocity;
-		particle[i].mass = random_uniform() * 0.1;
-#if 0
-		particle[i].mass = random_uniform() * 0.5;
-#endif
-#if 0
-		particle[i].mass = 0.1;
-		particle[i].radius = 0.05;
-#endif
-		particle[i].radius = sqrt(particle[i].mass);
-		particle[i].elasticity = 1.0;
-		particle[i].quadric = quadric;
-		particle[i].slices = 10;
-		particle[i].loops = 3;
-		done = false;
-		while (!done) {
-			particle[i].position[0] = random_uniform() *
-				(arena.max[0] - arena.min[0] - 2.0 * particle[i].radius) +
-				arena.min[0] + particle[i].radius + epsilon;
-			particle[i].position[1] = random_uniform() *
-				(arena.max[1] - arena.min[1] - 2.0 * particle[i].radius) +
-				arena.min[1] + particle[i].radius + epsilon;
-
-			/* Check for collision with existing particles. */
-			collision = false;
-			j = 0;
-			while (!collision && j < i) {
-				sum_radii = particle[i].radius + particle[j].radius;
-				sum_radii_sq = sum_radii * sum_radii;
-				n[0] = particle[j].position[0] - particle[i].position[0];
-				n[1] = particle[j].position[1] - particle[i].position[1];
-				n_mag_sq = n[0] * n[0] + n[1] * n[1];
-				if (n_mag_sq < sum_radii_sq)
-					collision = true;
-				else
-					j++;
-			}
-			if (!collision)
-				done = true;
-		}
-		if (debug[debug_initialise_particle])
-			printf ("initialiseParticles: x %f y %f\n",
-					particle[i].position[0], particle[i].position[1]);
-	}
-}
-
-void setRenderMode(renderMode rm)
-{
-	/* Example of GNU C/C++ brace indentation style.  */
-	if (rm == wire)
-	{
-		glDisable(GL_LIGHTING);
-		glDisable(GL_DEPTH_TEST);
-		glDisable(GL_NORMALIZE);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	}
-	else if (rm == solid)
-	{
-		glEnable(GL_LIGHTING);
-		glEnable(GL_LIGHT0);
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_NORMALIZE);
-		glShadeModel(GL_SMOOTH);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	}
-}
-
-float sumKineticEnergy()
-{
-	Real v_sq, K;
-
-	K = 0;
-	for (int i = 0; i < numParticles; i++) {
-		v_sq = particle[i].velocity[0] * particle[i].velocity[0] +
-			particle[i].velocity[1] * particle[i].velocity[1];
-		K += 0.5 * particle[i].mass * v_sq;
-	}
-
-	return K;
-}
-
-void sumMomentum(Real *p)
-{
-	p[0] = p[1] = 0;
-	for (int i = 0; i < numParticles; i++) {
-		p[0] += particle[i].mass * particle[i].velocity[0];
-		p[1] += particle[i].mass * particle[i].velocity[1];
-	}
-	p[0] += arena.momentum[0];
-	p[1] += arena.momentum[1];
-}
-
-void displayParticle(Particle *p, float sx, float sy, float sz)
-{
-	glPushMatrix();
-	glScalef(sx, sy, sz);
-	gluDisk(p->quadric, 0.0, p->radius, p->slices, p->loops);
-	glPopMatrix();
-}
-
-void changeRenderMode(void)
-{
-	if (renMode == wire) {
-		renMode = solid;
-	} else {
-		renMode = wire;
-	}
-	setRenderMode(renMode);
-}
-
-void displayArena(void)
-{
-	glBegin(GL_LINE_LOOP);
-	glVertex3f(arena.min[0], arena.min[1], 0.0);
-	glVertex3f(arena.max[0], arena.min[1], 0.0);
-	glVertex3f(arena.max[0], arena.max[1], 0.0);
-	glVertex3f(arena.min[0], arena.max[1], 0.0);
-	glEnd();
-}
-
 void collideParticleWall(Particle &p, Arena &a)
 {
 	float dp[2];
@@ -761,171 +601,13 @@ void updateParticles(void)
 	else
 		panic("updateParticles: unknown collision detection method\n");
 
-	if (debug[debug_sum_kinetic_energy]) {
+	/*if (debug[debug_sum_kinetic_energy]) {
 		printf("K = %f\n", sumKineticEnergy());
 	}
 	if (debug[debug_sum_momentum]) {
 		Real p[2];
 		sumMomentum(p);
 		printf("p = %f %f\n", p[0], p[1]);
-	}
+	}*/
 }
-
-void displayParticles(void)
-{
-	int i;
-
-	/* Display particles. */
-	for (i = 0; i < numParticles; i++) {
-		if (debug[debug_particle])
-			printf ("displayParticles: x %f y %f\n",
-					particle[i].position[0], particle[i].position[1]);
-		glPushMatrix();
-		glTranslatef(particle[i].position[0], particle[i].position[1], 0.0);
-		displayParticle(&particle[i], 1.0, 1.0, 1.0);
-		glPopMatrix();
-	}
-}
-
-void displayOSD(int frameNo)
-{
-	static const Real interval = 1.0;
-	static Real frameRateInterval = 0.0;
-	static int frameNoStartInterval = 0;
-	static Real elapsedTimeStartInterval = 0.0;
-	static char buffer[80];
-	int len, i;
-
-	if (elapsedTime < interval)
-		return;
-
-	if (elapsedTime > elapsedTimeStartInterval + interval) {
-		frameRateInterval = (frameNo - frameNoStartInterval) /
-			(elapsedTime - elapsedTimeStartInterval);
-		elapsedTimeStartInterval = elapsedTime;
-		frameNoStartInterval = frameNo;
-	}
-
-	if (debug[debug_framerate]) {
-		printf("displayOSD: frameNo %d elapsedTime %f "
-				"frameRateInterval %f\n",
-				frameNo, elapsedTime, frameRateInterval);
-	}
-
-	sprintf(buffer, "framerate: %5d frametime: %5d",
-			int(frameRateInterval),
-			int(1.0/frameRateInterval*1000));
-	glRasterPos2f(-10,-9);
-	len = (int)strlen(buffer);
-	for (i = 0; i < len; i++)
-		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buffer[i]);
-}
-
-void update(void)
-{
-	if (!go)
-		return;
-
-	elapsedTime = glutGet(GLUT_ELAPSED_TIME) / (Real)milli - startTime;
-
-	updateParticles();
-
-	glutPostRedisplay();
-}
-
-void display(void)
-{
-	static int frameNo = 0;
-	GLenum err;
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	glColor3f (0.8, 0.8, 0.8);
-
-	glPushMatrix();
-
-	/* Display particle and arena. */
-	glPushMatrix();
-	displayArena();
-	displayParticles();
-	glPopMatrix();
-
-	/* Display frame rate counter. */
-	glPushMatrix();
-	displayOSD(frameNo);
-	glPopMatrix();
-	frameNo++;
-
-	glPopMatrix();
-
-	glutSwapBuffers();
-	/* Check for errors. */
-	while ((err = glGetError()) != GL_NO_ERROR)
-		printf("%s\n",gluErrorString(err));
-}
-void keyboardCB(unsigned char key, int x, int y)
-{
-	switch (key) {
-		case 'q':
-			exit(EXIT_SUCCESS);
-			break;
-		case 'w':
-			changeRenderMode();
-			break;
-		case 'c':
-			debug[debug_range_check] = !debug[debug_range_check];
-			break;
-		case 'd':
-			if (CDmethod == uniformGrid)
-				CDmethod = bruteForce;
-			else if (CDmethod == bruteForce)
-				CDmethod = uniformGrid;
-			break;
-		case 'r':
-			if (reacCalc == projNormal)
-				reacCalc = basisChange;
-			else if (reacCalc == basisChange)
-				reacCalc = projNormal;
-			break;
-		case 's':
-			if (!go) {
-				startTime = glutGet(GLUT_ELAPSED_TIME) / (Real)milli;
-				go = true;
-			}
-			break;
-	}
-	glutPostRedisplay();
-}
-
-void myReshape(int w, int h)
-{
-	glViewport(0, 0, w, h);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-
-	glOrtho(-10.0, 10.0, -10.0, 10.0, -10.0, 10.0);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-}
-
-/*  Main Loop
- *  Open window with initial window size, title bar,
- *  RGBA display mode, and handle input events.
- */
-int main(int argc, char** argv)
-{
-	glutInit(&argc, argv);
-	glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-	glutInitWindowSize(600, 600);
-	glutInitWindowPosition(500, 500);
-	glutCreateWindow("Collision Detection and Reaction: Particles in an Arena");
-	glutDisplayFunc(display);
-	glutIdleFunc(update);
-	glutReshapeFunc(myReshape);
-	glutKeyboardFunc(keyboardCB);
-	myInit();
-
-	glutMainLoop();
-}
-
-
+#endif
