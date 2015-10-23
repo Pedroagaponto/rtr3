@@ -20,6 +20,7 @@ struct Particle ball;
 struct Particle *pegs;
 int *collidedPegs;
 int numPegs = 0;
+int levelPoints = 0;
 ReactionCalculation reacCalc = basisChange;
 
 /*  Main Loop

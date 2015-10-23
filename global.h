@@ -102,4 +102,5 @@ extern struct Particle ball;
 extern struct Particle *pegs;
 extern int *collidedPegs;
 extern int numPegs;
+extern int levelPoints;
 #endif

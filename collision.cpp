@@ -4,6 +4,7 @@
 #define GRAVITY 10
 
 static Real oldTime = 0;
+static int roundPoints = 0;
 
 bool checkCollision (struct Particle p1, struct Particle p2)
 {
@@ -93,11 +94,14 @@ void setHitColor(struct Particle &p)
 	p.color[1] = p.color[2] = 0;
 }
 
-void removeCollidedPegs(void)
+void accountCollidedPegs(void)
 {
 	for (int i = 0; i < numPegs; i++)
-		if (collidedPegs[i])
+		if (collidedPegs[i]) {
 			pegs[i].collided = true;
+		}
+	levelPoints += roundPoints;
+	roundPoints = 0;
 }
 
 void updateBall(void)
@@ -108,13 +112,14 @@ void updateBall(void)
 			ball.velocity[0] = -ball.velocity[0];
 			moveBall(diffTime);
 		} else if (checkCollision(ball, pegs[i])) {
+			roundPoints += 10;
 			collidedPegs[i] = 1;
 			setHitColor(pegs[i]);
 			moveBall(-diffTime);
 			collisionReaction(ball, pegs[i]);
 			moveBall(diffTime);
 		} else if (ball.position[1] < -GAME_SIZE) { //check end of round
-			removeCollidedPegs();
+			accountCollidedPegs();
 			go = false;
 			ball.position[0] = 0;
 			ball.position[1] = GAME_SIZE - 1;

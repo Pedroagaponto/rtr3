@@ -131,9 +131,8 @@ void displayOSD(int frameNo)
 				frameNo, elapsedTime, frameRateInterval);
 	}
 
-	sprintf(buffer, "framerate: %5d frametime: %5d",
-			int(frameRateInterval),
-			int(1.0/frameRateInterval*1000));
+	sprintf(buffer, "framerate: %5d  |  frametime: %5d  |  points %5d",
+			int(frameRateInterval), int(1.0/frameRateInterval*1000), levelPoints);
 	glRasterPos2f(-10,-9);
 	len = (int)strlen(buffer);
 	for (i = 0; i < len; i++)
