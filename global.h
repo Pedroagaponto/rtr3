@@ -89,6 +89,7 @@ extern renderMode renMode;
 extern Real elapsedTime, startTime, diffTime;
 const int milli = 1000;
 extern bool go;
+extern bool movingPegs;
 
 /* Collision detection method. */
 enum CollisionDetectionMethod {

@@ -130,10 +130,23 @@ void updateBall(void)
 	}
 }
 
+void updatePegs() {
+	if (!movingPegs)
+		return;
+
+	for (int i = 0; i < numPegs; i++) {
+		pegs[i].position[0] = (pegs[i].position[0] > GAME_SIZE) ?
+			pegs[i].radius - GAME_SIZE : pegs[i].position[0]+=0.001;
+	}
+}
+
 void update(void)
 {
-	if (!go)
+	updatePegs();
+	if (!go) {
+		glutPostRedisplay();
 		return;
+	}
 
 	elapsedTime = glutGet(GLUT_ELAPSED_TIME) / (Real)milli - startTime;
 	diffTime = elapsedTime - oldTime;

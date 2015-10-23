@@ -26,26 +26,34 @@ void keyboardCB(unsigned char key, int x, int y)
 	switch (key) {
 		case 'a':
 		case 'A':
-			theta = STEP_ROTATION;
-			rotateBall(-theta * M_PI/180.0);
+			if (!go) {
+				theta = STEP_ROTATION;
+				rotateBall(-theta * M_PI/180.0);
+			}
 			break;
 
 		case 'd':
 		case 'D':
-			theta = STEP_ROTATION;
-			rotateBall(theta * M_PI/180.0);
+			if (!go) {
+				theta = STEP_ROTATION;
+				rotateBall(theta * M_PI/180.0);
+			}
 			break;
 
 		case 'z':
 		case 'Z':
-			theta = STEP_ROTATION/8.0;
-			rotateBall(-theta * M_PI/180.0);
+			if (!go) {
+				theta = STEP_ROTATION/8.0;
+				rotateBall(-theta * M_PI/180.0);
+			}
 			break;
 
 		case 'c':
 		case 'C':
-			theta = STEP_ROTATION/8.0;
-			rotateBall(theta * M_PI/180.0);
+			if (!go) {
+				theta = STEP_ROTATION/8.0;
+				rotateBall(theta * M_PI/180.0);
+			}
 			break;
 
 		case 'q':
@@ -72,6 +80,10 @@ void keyboardCB(unsigned char key, int x, int y)
 				reacCalc = basisChange;
 			else if (reacCalc == basisChange)
 				reacCalc = projNormal;
+			break;
+		case 'm':
+		case 'M':
+			movingPegs = !movingPegs;
 			break;
 		case ' ':
 			if (!go) {

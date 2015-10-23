@@ -21,6 +21,7 @@ struct Particle *pegs;
 int *collidedPegs;
 int numPegs = 0;
 int levelPoints = 0;
+bool movingPegs = false;
 ReactionCalculation reacCalc = basisChange;
 
 /*  Main Loop
