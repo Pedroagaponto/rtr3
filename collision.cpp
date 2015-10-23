@@ -1,6 +1,9 @@
 #include "global.h"
+#include "collision.h"
 
 #define GRAVITY 10
+
+static Real oldTime = 0;
 
 bool checkCollision (struct Particle p1, struct Particle p2)
 {
@@ -92,20 +95,28 @@ void updateBall(void)
 {
 	moveBall(diffTime);
 	for (int i = 0; i < numPegs; i++) {
-		//printf("peg %d: ", i);
-		if (checkCollision(ball, pegs[i]))
-		{
+		if (ball.position[0] < -GAME_SIZE || ball.position[0] > GAME_SIZE) { //check wall collision
+			ball.velocity[0] = -ball.velocity[0];
+			ball.velocity[1] = -ball.velocity[1];
+			moveBall(diffTime);
+		} else if (checkCollision(ball, pegs[i])) {
 			setHitColor(pegs[i]);
 			moveBall(-diffTime);
 			collisionReaction(ball, pegs[i]);
 			moveBall(diffTime);
+		} else if (ball.position[1] < -GAME_SIZE) { //check end of round
+			go = false;
+			ball.position[0] = 0;
+			ball.position[1] = GAME_SIZE - 1;
+			ball.velocity[0] = 0.0;
+			ball.velocity[1] = -7.0;
+			oldTime = 0;
 		}
 	}
 }
 
 void update(void)
 {
-	static Real oldTime = 0;
 	if (!go)
 		return;
 

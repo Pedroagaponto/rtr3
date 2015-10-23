@@ -49,7 +49,6 @@ void pegWave(vec2 *pegsInit, int nPegs, int nWaves, float yOffset)
 		float aux = (float)i/(float)nPegs;
 		pegsInit[i].x = -GAME_SIZE + (GAME_SIZE * aux * 2) + (GAME_SIZE/nPegs);
 		pegsInit[i].y = sin(nWaves * 2 * M_PI * aux) + yOffset;
-		printf("(%f, %f)\n", pegsInit[i].x, pegsInit[i].y);
 	}
 }
 
