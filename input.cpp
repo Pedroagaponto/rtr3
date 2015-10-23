@@ -20,32 +20,41 @@ void rotateBall(Real theta)
 void keyboardCB(unsigned char key, int x, int y)
 {
 	Real theta;
+	UNUSED_VAR x;
+	UNUSED_VAR y;
 
 	switch (key) {
 		case 'a':
+		case 'A':
 			theta = STEP_ROTATION;
 			rotateBall(-theta * M_PI/180.0);
 			break;
 
 		case 'd':
+		case 'D':
 			theta = STEP_ROTATION;
 			rotateBall(theta * M_PI/180.0);
 			break;
 
 		case 'z':
+		case 'Z':
 			theta = STEP_ROTATION/8.0;
 			rotateBall(-theta * M_PI/180.0);
 			break;
 
 		case 'c':
+		case 'C':
 			theta = STEP_ROTATION/8.0;
 			rotateBall(theta * M_PI/180.0);
 			break;
 
 		case 'q':
+		case 'Q':
+		case 27:
 			exit(EXIT_SUCCESS);
 			break;
 		case 'w':
+		case 'W':
 			changeRenderMode();
 			break;
 /*		case 'c':
@@ -58,12 +67,13 @@ void keyboardCB(unsigned char key, int x, int y)
 				CDmethod = uniformGrid;
 			break;*/
 		case 'r':
+		case 'R':
 			if (reacCalc == projNormal)
 				reacCalc = basisChange;
 			else if (reacCalc == basisChange)
 				reacCalc = projNormal;
 			break;
-		case 's':
+		case ' ':
 			if (!go) {
 				startTime = glutGet(GLUT_ELAPSED_TIME) / (Real)milli;
 				go = true;

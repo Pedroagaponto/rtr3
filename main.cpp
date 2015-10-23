@@ -3,6 +3,12 @@
 #include "input.h"
 #include "collision.h"
 
+void pegWave(vec2 *pegsInit, int nPegs, int nWaves, float yOffset);
+void initialisePegs (void);
+void initialiseBall (void);
+void initialisePolygons (int *vertex[2], int nSides, int angleOffset, int radius);
+void myInit (void);
+	
 int debug[numDebugFlags] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1 };
 struct Arena arena;
 renderMode renMode = wire;
@@ -15,9 +21,45 @@ struct Particle *pegs;
 int numPegs = 0;
 ReactionCalculation reacCalc = basisChange;
 
+/*  Main Loop
+ *  Open window with initial window size, title bar,
+ *  RGBA display mode, and handle input events.
+ */
+int main(int argc, char** argv)
+{
+	glutInit(&argc, argv);
+	glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+	glutInitWindowSize(1000, 1000);
+	glutInitWindowPosition(500, 500);
+	glutCreateWindow("Collision Detection and Reaction: Particles in an Arena");
+	glutDisplayFunc(display);
+	glutIdleFunc(update);
+	glutReshapeFunc(myReshape);
+	glutKeyboardFunc(keyboardCB);
+
+	myInit();
+
+	glutMainLoop();
+}
+
+void pegWave(vec2 *pegsInit, int nPegs, int nWaves, float yOffset) 
+{
+	for (int i = 0; i < nPegs; i ++)
+	{
+		float aux = (float)i/(float)nPegs;
+		pegsInit[i].x = -GAME_SIZE + (GAME_SIZE * aux * 2) + (GAME_SIZE/nPegs);
+		pegsInit[i].y = sin(nWaves * 2 * M_PI * aux) + yOffset;
+		printf("(%f, %f)\n", pegsInit[i].x, pegsInit[i].y);
+	}
+}
+
 void initialisePegs (void)
 {
-	int pegsInit[][2] = {{0, 0}};
+	vec2 pegsInit[50];
+
+	for (int i = 0; i < 5; i++) {
+		pegWave(pegsInit+(10*i), 10, 3, (i*2) - 5);
+	}
 
 	numPegs = sizeof(pegsInit) / sizeof(pegsInit[0]);
 	printf ("numPegs = %d\n", numPegs);
@@ -26,13 +68,13 @@ void initialisePegs (void)
 	for (int i = 0; i < numPegs; i++) {
 		pegs[i].velocity[0] = 0.0;
 		pegs[i].velocity[1] = 0.0;
-		pegs[i].radius = 1.0;
+		pegs[i].radius = 0.3;
 		pegs[i].mass = INF;
 		pegs[i].elasticity = 1.0;
 		pegs[i].slices = 10;
 		pegs[i].loops = 3;
-		pegs[i].position[0] = pegsInit[i][0];
-		pegs[i].position[1] = pegsInit[i][1];
+		pegs[i].position[0] = pegsInit[i].x;
+		pegs[i].position[1] = pegsInit[i].y;
 		pegs[i].color[0] = 1;
 		pegs[i].color[1] = 1;
 		pegs[i].color[2] = 1;
@@ -44,8 +86,8 @@ void initialiseBall (void)
 {
 
 	ball.velocity[0] = 0.0;
-	ball.velocity[1] = -5.0;
-	ball.radius = 1.0;
+	ball.velocity[1] = -7.0;
+	ball.radius = 0.2;
 	ball.mass = 1.0;
 	ball.elasticity = 0.9;
 	ball.slices = 10;
@@ -57,6 +99,32 @@ void initialiseBall (void)
 	ball.color[2] = 1;
 }
 
+void initialisePolygons (int *vertex[2], int nSides, int angleOffset, int radius)
+{
+	if (nSides < 3)
+		return;
+
+	float theta = 2 * M_PI / nSides;
+	float c0 = cos(theta);
+	float s0 = sin(theta);
+	float tx;
+
+	//Inicial position
+	float x = cos(angleOffset) * radius;
+	float y = sin(angleOffset) * radius;
+
+	for(int i = 0; i < nSides; i++)
+	{
+		vertex[i][0] = x;
+		vertex[i][1] = y;
+
+		tx = x;
+		x = c0 * x - s0 * y;
+		y = s0 * tx + c0 * y;
+	}
+
+}
+
 void myInit (void)
 {
 	setRenderMode(renMode);
@@ -66,27 +134,5 @@ void myInit (void)
 	initialiseBall();
 	//else if (initialiseParticles == randomly)
 	//	initialiseParticlesRandomly();
-}
-
-/*  Main Loop
- *  Open window with initial window size, title bar,
- *  RGBA display mode, and handle input events.
- */
-
-int main(int argc, char** argv)
-{
-	glutInit(&argc, argv);
-	glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-	glutInitWindowSize(600, 600);
-	glutInitWindowPosition(500, 500);
-	glutCreateWindow("Collision Detection and Reaction: Particles in an Arena");
-	glutDisplayFunc(display);
-	glutIdleFunc(update);
-	glutReshapeFunc(myReshape);
-	glutKeyboardFunc(keyboardCB);
-
-	myInit();
-
-	glutMainLoop();
 }
 

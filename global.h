@@ -16,6 +16,7 @@
 //size used for the viewport
 #define GAME_SIZE 10
 #define INF 1000000
+#define UNUSED_VAR (void)
 
 /* Debugging controls .*/
 enum debugFlags {
@@ -68,6 +69,9 @@ struct Particle {
 	int slices, loops;    /* For rendering. */
 };
 
+typedef struct {
+	float x, y;
+} vec2;
 
 /* Arena. */
 struct Arena {

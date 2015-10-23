@@ -1,6 +1,6 @@
 #include "global.h"
 
-#define GRAVITY 15
+#define GRAVITY 10
 
 bool checkCollision (struct Particle p1, struct Particle p2)
 {
