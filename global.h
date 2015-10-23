@@ -17,6 +17,7 @@
 #define GAME_SIZE 10
 #define INF 1000000
 #define UNUSED_VAR (void)
+#define INITIAL_VELOCITY -5
 
 /* Debugging controls .*/
 enum debugFlags {
@@ -66,7 +67,8 @@ struct Particle {
 	Real radius;
 	Real mass;
 	Real elasticity;
-	int slices, loops;    /* For rendering. */
+	int slices, loops; /* For rendering. */
+	bool collided;
 };
 
 typedef struct {
@@ -98,5 +100,6 @@ extern CollisionDetectionMethod CDmethod;
 
 extern struct Particle ball;
 extern struct Particle *pegs;
+extern int *collidedPegs;
 extern int numPegs;
 #endif

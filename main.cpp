@@ -18,6 +18,7 @@ CollisionDetectionMethod CDmethod = bruteForce;
 
 struct Particle ball;
 struct Particle *pegs;
+int *collidedPegs;
 int numPegs = 0;
 ReactionCalculation reacCalc = basisChange;
 
@@ -63,6 +64,7 @@ void initialisePegs (void)
 	numPegs = sizeof(pegsInit) / sizeof(pegsInit[0]);
 	printf ("numPegs = %d\n", numPegs);
 	pegs = (Particle *) malloc(sizeof(Particle) * numPegs);
+	collidedPegs = (int *) calloc(numPegs, sizeof(int));
 
 	for (int i = 0; i < numPegs; i++) {
 		pegs[i].velocity[0] = 0.0;
@@ -85,7 +87,7 @@ void initialiseBall (void)
 {
 
 	ball.velocity[0] = 0.0;
-	ball.velocity[1] = -7.0;
+	ball.velocity[1] = INITIAL_VELOCITY;
 	ball.radius = 0.2;
 	ball.mass = 1.0;
 	ball.elasticity = 0.9;

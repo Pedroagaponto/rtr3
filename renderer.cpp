@@ -75,6 +75,8 @@ void displayPegs(void)
 
 	/* Display particles. */
 	for (i = 0; i < numPegs; i++) {
+		if (pegs[i].collided)
+			continue;
 		if (debug[debug_particle])
 			printf ("displayParticles: x %f y %f\n",
 					pegs[i].position[0], pegs[i].position[1]);

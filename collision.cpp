@@ -7,6 +7,8 @@ static Real oldTime = 0;
 
 bool checkCollision (struct Particle p1, struct Particle p2)
 {
+	if (p2.collided)
+		return false;
 	//circle collision
 	Real d0 = p1.position[0] - p2.position[0];
 	Real d1 = p1.position[1] - p2.position[1];
@@ -91,25 +93,33 @@ void setHitColor(struct Particle &p)
 	p.color[1] = p.color[2] = 0;
 }
 
+void removeCollidedPegs(void)
+{
+	for (int i = 0; i < numPegs; i++)
+		if (collidedPegs[i])
+			pegs[i].collided = true;
+}
+
 void updateBall(void)
 {
 	moveBall(diffTime);
 	for (int i = 0; i < numPegs; i++) {
 		if (ball.position[0] < -GAME_SIZE || ball.position[0] > GAME_SIZE) { //check wall collision
 			ball.velocity[0] = -ball.velocity[0];
-			ball.velocity[1] = -ball.velocity[1];
 			moveBall(diffTime);
 		} else if (checkCollision(ball, pegs[i])) {
+			collidedPegs[i] = 1;
 			setHitColor(pegs[i]);
 			moveBall(-diffTime);
 			collisionReaction(ball, pegs[i]);
 			moveBall(diffTime);
 		} else if (ball.position[1] < -GAME_SIZE) { //check end of round
+			removeCollidedPegs();
 			go = false;
 			ball.position[0] = 0;
 			ball.position[1] = GAME_SIZE - 1;
 			ball.velocity[0] = 0.0;
-			ball.velocity[1] = -7.0;
+			ball.velocity[1] = INITIAL_VELOCITY;
 			oldTime = 0;
 		}
 	}
