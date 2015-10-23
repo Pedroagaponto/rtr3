@@ -61,26 +61,6 @@ void keyboardCB(unsigned char key, int x, int y)
 		case 27:
 			exit(EXIT_SUCCESS);
 			break;
-		case 'w':
-		case 'W':
-			changeRenderMode();
-			break;
-/*		case 'c':
-			debug[debug_range_check] = !debug[debug_range_check];
-			break;
-		case 'd':
-			if (CDmethod == uniformGrid)
-				CDmethod = bruteForce;
-			else if (CDmethod == bruteForce)
-				CDmethod = uniformGrid;
-			break;*/
-		case 'r':
-		case 'R':
-			if (reacCalc == projNormal)
-				reacCalc = basisChange;
-			else if (reacCalc == basisChange)
-				reacCalc = projNormal;
-			break;
 		case 'm':
 		case 'M':
 			movingPegs = !movingPegs;

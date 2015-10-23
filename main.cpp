@@ -145,11 +145,7 @@ void initialisePolygons (int *vertex[2], int nSides, int angleOffset, int radius
 void myInit (void)
 {
 	setRenderMode(renMode);
-	//initialiseArena();
-	//if (initialiseParticles == explicitly)
 	initialisePegs();
 	initialiseBall();
-	//else if (initialiseParticles == randomly)
-	//	initialiseParticlesRandomly();
 }
 
