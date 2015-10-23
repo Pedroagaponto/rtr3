@@ -18,6 +18,7 @@
 #define INF 1000000
 #define UNUSED_VAR (void)
 #define INITIAL_VELOCITY -5
+#define RAND(MIN, MAX) (rand()%(MAX-MIN))+MIN; 
 
 /* Debugging controls .*/
 enum debugFlags {
@@ -69,6 +70,7 @@ struct Particle {
 	Real elasticity;
 	int slices, loops; /* For rendering. */
 	bool collided;
+	bool canMove;
 };
 
 typedef struct {
@@ -102,6 +104,7 @@ extern CollisionDetectionMethod CDmethod;
 extern struct Particle ball;
 extern struct Particle *pegs;
 extern int *collidedPegs;
+extern int *movingParticles;
 extern int numPegs;
 extern int levelPoints;
 #endif

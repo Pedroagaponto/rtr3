@@ -49,12 +49,12 @@ void collisionReaction(struct Particle &p1, struct Particle &p2)
 	m1 = p1.mass;
 	m2 = p2.mass;
 
-	if(m1 == INF)
+	if(!p1.canMove)
 	{
 		v2f = -v2i * p2.elasticity;
 		v1f = v1i;
 	}
-	else if (m2 == INF)
+	else if (!p2.canMove)
 	{
 		v1f = -v1i * p1.elasticity;
 		v2f = v2i;
@@ -88,10 +88,33 @@ void moveBall(Real t)
 	}
 }
 
+void movePegs(Real t)
+{
+	for (int i = 0; i < numPegs; i++) {
+		if (pegs[i].velocity[0] == 0 && pegs[i].velocity[1] == 0)
+			continue;
+
+		if (t < 0)
+		{
+			pegs[i].velocity[1] += -GRAVITY * t;
+			pegs[i].position[0] += pegs[i].velocity[0] * t;
+			pegs[i].position[1] += pegs[i].velocity[1] * t;
+		}
+		else
+		{
+			pegs[i].position[0] += pegs[i].velocity[0] * t;
+			pegs[i].position[1] += pegs[i].velocity[1] * t;
+			pegs[i].velocity[1] += -GRAVITY * t;
+		}
+	}
+}
+
 void setHitColor(struct Particle &p)
 {
-	p.color[0] = 1;
-	p.color[1] = p.color[2] = 0;
+	if (!p.canMove) {
+		p.color[0] = 1;
+		p.color[1] = p.color[2] = 0;
+	}
 }
 
 void accountCollidedPegs(void)
@@ -107,36 +130,69 @@ void accountCollidedPegs(void)
 void updateBall(void)
 {
 	moveBall(diffTime);
+	movePegs(diffTime);
+	if (ball.position[0] < -GAME_SIZE || ball.position[0] > GAME_SIZE) { //check wall collision
+		ball.velocity[0] = -ball.velocity[0];
+		moveBall(diffTime);
+	}
+
 	for (int i = 0; i < numPegs; i++) {
-		if (ball.position[0] < -GAME_SIZE || ball.position[0] > GAME_SIZE) { //check wall collision
-			ball.velocity[0] = -ball.velocity[0];
-			moveBall(diffTime);
-		} else if (checkCollision(ball, pegs[i])) {
-			roundPoints += 10;
-			collidedPegs[i] = 1;
+		if (checkCollision(ball, pegs[i])) {
+			if (!collidedPegs[i]) {
+				roundPoints += 10;
+				collidedPegs[i] = 1;
+			}
 			setHitColor(pegs[i]);
 			moveBall(-diffTime);
 			collisionReaction(ball, pegs[i]);
 			moveBall(diffTime);
-		} else if (ball.position[1] < -GAME_SIZE) { //check end of round
-			accountCollidedPegs();
-			go = false;
-			ball.position[0] = 0;
-			ball.position[1] = GAME_SIZE - 1;
-			ball.velocity[0] = 0.0;
-			ball.velocity[1] = INITIAL_VELOCITY;
-			oldTime = 0;
+			movePegs(diffTime);
 		}
 	}
 }
 
 void updatePegs() {
-	if (!movingPegs)
-		return;
-
 	for (int i = 0; i < numPegs; i++) {
-		pegs[i].position[0] = (pegs[i].position[0] > GAME_SIZE) ?
-			pegs[i].radius - GAME_SIZE : pegs[i].position[0]+=0.001;
+		if (movingPegs && pegs[i].velocity[0] == 0 && pegs[i].velocity[1] == 0) {
+			pegs[i].position[0] = (pegs[i].position[0] > GAME_SIZE) ?
+				pegs[i].radius - GAME_SIZE : pegs[i].position[0]+=0.001;
+		}
+
+		if (pegs[i].velocity[0] == 0 && pegs[i].velocity[1] == 0)
+			continue;
+		
+		if (pegs[i].position[0] < -GAME_SIZE || pegs[i].position[0] > GAME_SIZE) { //check wall collision
+			pegs[i].velocity[0] = -pegs[i].velocity[0];
+			moveBall(diffTime);
+		}
+		
+		for (int j = 0; j < numPegs; j++) {	
+			if (i != j && checkCollision(pegs[i], pegs[j])) {
+				if (!collidedPegs[j]) {
+					collidedPegs[j] = 1;
+					roundPoints += 10;
+				}
+				setHitColor(pegs[j]);
+				collisionReaction(pegs[i], pegs[j]);
+				movePegs(diffTime);
+			}
+		}
+	}
+}
+
+void reset(void)
+{
+	accountCollidedPegs();
+	go = false;
+	ball.canMove = true;
+	ball.position[0] = 0;
+	ball.position[1] = GAME_SIZE - 1;
+	ball.velocity[0] = 0.0;
+	ball.velocity[1] = INITIAL_VELOCITY;
+	oldTime = 0;
+	for (int i = 0; i < numPegs; i++) {
+		pegs[i].velocity[0] = 0;
+		pegs[i].velocity[1] = 0;
 	}
 }
 
@@ -152,8 +208,18 @@ void update(void)
 	diffTime = elapsedTime - oldTime;
 	oldTime = elapsedTime;
 	updateBall();
-	//updatePegs();
 
+	for (int i = 0; i < numPegs; i++) {
+		if (collidedPegs[i] && pegs[i].canMove &&
+				pegs[i].position[1] > -GAME_SIZE)
+		{
+			glutPostRedisplay();
+			return;
+		}
+	}
+
+	if (ball.position[1] < -GAME_SIZE)
+		reset();
 	glutPostRedisplay();
 }
 

@@ -2,6 +2,7 @@
 #include "renderer.h"
 #include "input.h"
 #include "collision.h"
+#include <time.h>
 
 void pegWave(vec2 *pegsInit, int nPegs, int nWaves, float yOffset);
 void initialisePegs (void);
@@ -19,6 +20,7 @@ CollisionDetectionMethod CDmethod = bruteForce;
 struct Particle ball;
 struct Particle *pegs;
 int *collidedPegs;
+int *movingParticles;
 int numPegs = 0;
 int levelPoints = 0;
 bool movingPegs = false;
@@ -30,6 +32,7 @@ ReactionCalculation reacCalc = basisChange;
  */
 int main(int argc, char** argv)
 {
+	srand(time(NULL));
 	glutInit(&argc, argv);
 	glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(1000, 1000);
@@ -57,6 +60,7 @@ void pegWave(vec2 *pegsInit, int nPegs, int nWaves, float yOffset)
 
 void initialisePegs (void)
 {
+	int nSpecialPegs = RAND(0, 5);
 	vec2 pegsInit[50];
 
 	for (int i = 0; i < 5; i++) {
@@ -67,13 +71,14 @@ void initialisePegs (void)
 	printf ("numPegs = %d\n", numPegs);
 	pegs = (Particle *) malloc(sizeof(Particle) * numPegs);
 	collidedPegs = (int *) calloc(numPegs, sizeof(int));
+	movingParticles = (int *) calloc(numPegs, sizeof(int));
 
 	for (int i = 0; i < numPegs; i++) {
 		pegs[i].velocity[0] = 0.0;
 		pegs[i].velocity[1] = 0.0;
 		pegs[i].radius = 0.3;
-		pegs[i].mass = INF;
-		pegs[i].elasticity = 1.0;
+		pegs[i].mass = 1.0;
+		pegs[i].elasticity = 0.5;
 		pegs[i].slices = 10;
 		pegs[i].loops = 3;
 		pegs[i].position[0] = pegsInit[i].x;
@@ -81,18 +86,27 @@ void initialisePegs (void)
 		pegs[i].color[0] = 1;
 		pegs[i].color[1] = 1;
 		pegs[i].color[2] = 1;
+		pegs[i].canMove = false;
+	}
+
+	for (int i = 0; i < nSpecialPegs; i++)
+	{
+		int index = RAND(0, numPegs);
+		pegs[index].color[0] = 0;
+		pegs[index].color[1] = 0;
+		pegs[index].canMove = true;
 	}
 
 }
 
 void initialiseBall (void)
 {
-
+	ball.canMove = true;
 	ball.velocity[0] = 0.0;
 	ball.velocity[1] = INITIAL_VELOCITY;
 	ball.radius = 0.2;
-	ball.mass = 1.0;
-	ball.elasticity = 0.9;
+	ball.mass = 0.5;
+	ball.elasticity = 0.5;
 	ball.slices = 10;
 	ball.loops = 3;
 	ball.position[0] = 0;
